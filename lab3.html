@@ -1,0 +1,320 @@
+<html>
+<head>	
+<link rel="stylesheet" href="style.css" type="text/css" />
+<script>
+
+	var width = 1;
+	var height = 1;
+	var matrix = [];
+	var mouseState = "up";
+	var gameState = "stop";
+	var timer = 0;
+	var speed = 5;
+	var maxSpeed = 10;
+	var prevX = -1;
+	var prevY = -1;
+	var helpKeyState = false;
+
+	function cutValue(val, minVal, maxVal)
+	{
+		if (val < minVal)
+			val = minVal;
+		if (val > maxVal)
+			val = maxVal;
+		return val;
+	}
+
+	function readStartValues()
+	{
+		width = cutValue(document.getElementById("width").value,1,100);
+		height = cutValue(document.getElementById("height").value,1,100);
+	}
+	
+	function buildMatrix()
+	{
+		var matrix = new Array(width);
+		for (var i = 0; i < width; i++)
+		{
+			matrix[i] = new Array(height);
+			for (var j = 0; j < height; j++)
+			{
+				matrix[i][j] = 0;
+			}
+		}
+		return matrix;
+	}
+	
+	function startGame()
+	{
+		gameState = "run";
+	}
+	
+	function getCellSafe(i,j)
+	{
+		if ((i < 0) || (j < 0) || (i >= width) || (j >= height))
+			return 0;
+		return matrix[i][j];
+	}
+	
+	function calcNeighbourCount(i,j)
+	{
+		var sum = 0;
+		sum += getCellSafe(i - 1, j - 1);
+		sum += getCellSafe(i, j - 1);
+		sum += getCellSafe(i + 1, j - 1);
+		sum += getCellSafe(i - 1, j);
+		sum += getCellSafe(i + 1, j);
+		sum += getCellSafe(i - 1, j + 1);
+		sum += getCellSafe(i, j + 1);
+		sum += getCellSafe(i + 1, j + 1);
+		return sum;
+	}
+	
+	function stepGame()
+	{
+		procGame();
+	}
+	
+	function procGame()
+	{
+		var newMatrix = buildMatrix();
+		for (var i = 0; i < width; i++)
+		{
+			for (var j = 0; j < height; j++)
+			{
+				var sum = calcNeighbourCount(i,j);
+				if (sum == 2)
+					newMatrix[i][j] = matrix[i][j];
+				else 
+				{	
+					if (sum == 3)
+						newMatrix[i][j] = 1;
+					else
+						newMatrix[i][j] = 0;
+				}
+			}
+		}
+		matrix = newMatrix;
+	}
+	
+	function render()
+	{
+		if (gameState == "run")
+		{
+			if (timer >= speed)
+			{
+				procGame();
+				timer = 0;
+			}
+			else
+			{
+				timer += 1;
+				return;
+			}
+		}
+		var c = document.getElementById("matrix_canvas");
+		var ctx = c.getContext("2d");
+		var cWidth = c.width;
+		var cHeight = c.height;
+
+		ctx.clearRect(0,0,cWidth,cHeight);
+		for (var i = 0; i < width; i++)
+		{
+			for (var j = 0; j < height; j++)
+			{
+				if (matrix[i][j] == 0)
+					ctx.fillStyle = "#AAA";
+				else
+					ctx.fillStyle = "#666";
+				ctx.fillRect(i * 11, j * 11, 10, 10);
+			}
+		}
+		
+	}
+	
+	function mouseProc(e)
+	{
+		if (mouseState == "down")
+		{
+			var c = document.getElementById("matrix_canvas");
+			var x = (e.clientX - c.offsetLeft + document.getElementById("matrix_container").scrollLeft) / 11;
+			var y = (e.clientY - c.offsetTop  + document.getElementById("matrix_container").scrollTop) / 11;
+			setPoint(x,y);
+		}
+	}
+	
+	function onMouseDown(e)
+	{
+		mouseState = "down";
+		mouseProc(e);
+	}
+	
+	function onMouseMove(e)
+	{
+		mouseProc(e);
+	}
+	
+	function onMouseUp(e)
+	{
+		mouseState = "up";
+		mouseProc(e);
+	}
+	
+	function initGame()
+	{
+		readStartValues();
+		var c = document.getElementById("matrix_canvas");
+		c.width = width * 11;
+		c.height = height * 11;
+		matrix = buildMatrix();
+		document.getElementById("start_window_container").style.visibility = "hidden";
+		setInterval("render()",50);
+		showSpeed();
+	}
+	
+	function showSpeed()
+	{
+		document.getElementById("speed").innerHTML = maxSpeed - speed;
+	}
+	
+	function subSpeed()
+	{
+		if (speed < maxSpeed)
+			speed += 1;
+		showSpeed();
+	}
+	
+	function addSpeed()
+	{
+		if (speed > 0)
+			speed -= 1;
+		showSpeed();
+	}
+	
+	function stopGame()
+	{
+		gameState = "stop";
+	}
+	
+	function resetMatrix()
+	{
+		stopGame();
+		matrix = buildMatrix();
+	}
+	
+	function setPoint(x,y)
+	{
+		x = Math.floor(x);
+		y = Math.floor(y);
+		if ((prevX == x) && (prevY == y))
+			return;
+		prevX = x;
+		prevY = y;
+		if (matrix[x][y] == 0)
+			matrix[x][y] = 1;
+		else
+			matrix[x][y] = 0;
+	}
+	
+	function configGame()
+	{
+		document.getElementById("start_window_container").style.visibility = "visible";
+		stopGame();
+	}
+	
+	function getOffsetSum(elem) 
+	{
+		var top=0, left=0
+		while(elem) {
+			top = top + parseFloat(elem.offsetTop)
+			left = left + parseFloat(elem.offsetLeft)
+			elem = elem.offsetParent       
+		}
+		return {top: Math.round(top), left: Math.round(left)}
+	}
+
+	
+	function showHelp(id,text,e)
+	{
+		if (!helpKeyState)
+			return;
+		var element = document.getElementById(id);
+		var helpElement = document.getElementById("help");
+		helpElement.innerHTML = text;
+		var offset = getOffsetSum(element);
+		var x = offset.left;
+		var y = offset.top - 25;
+		if (x < 0)
+			x = 0;
+		if (y < 0)
+			y = 0;
+		helpElement.style.left = x;
+		helpElement.style.top = y;
+		
+		helpElement.style.visibility = "visible";
+	}
+	
+	function hideHelp()
+	{
+		document.getElementById("help").style.visibility = "hidden";
+	}
+	
+	function onKeyDown(e)
+	{
+		if (e.keyCode == 72)
+			helpKeyState = true;
+	}
+	
+	function onKeyUp(e)
+	{
+		helpKeyState = false;
+	}
+	
+</script>
+</head>
+<body onload="configGame()" onkeydown="onKeyDown(event)" onkeyup="onKeyUp(event)">
+	<div id="app">
+		<div id="header"></div>
+		<div id="matrix_container" onmousemove="showHelp('matrix_container','Game field. Set and reset cells with left click.',event)" onmouseout="hideHelp()">
+			<div id="matrix">
+				<canvas id="matrix_canvas" width="600" height="400" onmousedown="onMouseDown(event)" onmouseup="onMouseUp(event)" onmousemove="onMouseMove(event)" style="border:1px solid #000000;">
+					HTML5 not supported
+				</canvas>
+			</div>
+		</div>
+		<div id="control_panel">
+			<div class="field" id="config_field">
+				<div id="config" class="button" onclick="configGame()" onmousemove="showHelp('config','Open config window.',event)" onmouseout="hideHelp()">Config</div>
+				<div id="reset" class="button" onclick="resetMatrix()" onmousemove="showHelp('reset','Stop animation. Reset matrix.',event)" onmouseout="hideHelp()">Reset</div>
+			</div>
+			<div class="field" id="controls_field">
+				<div id="check" class="button" onclick="startGame()" onmousemove="showHelp('check','Start the game.',event)" onmouseout="hideHelp()">Start</div>
+				<div id="stop_game" class="button" onclick="stopGame()" onmousemove="showHelp('stop_game','Stop the game.',event)" onmouseout="hideHelp()">Stop</div>
+				<div id="step" class="button" onclick="stepGame()" onmousemove="showHelp('stop_game','Make one step.',event)" onmouseout="hideHelp()">Step</div>
+			</div>
+			<div class="field" id="speed_field">
+				<div id="sub_speed" class="button" onclick="subSpeed()" onmousemove="showHelp('sub_speed','Decrease speed.',event)" onmouseout="hideHelp()">-</div>
+				<div id="speed">--</div>
+				<div id="add_speed" class="button" onclick="addSpeed()" onmousemove="showHelp('add_speed','Increase speed.',event)" onmouseout="hideHelp()">+</div>
+			</div>
+		</div>
+		
+		<div id="start_window_container">
+			<div id="start_window_bg">
+			</div>
+			<div id="start_window">
+				<div id="matrix_size_field" class="field">
+					Matrix size: <input type="number" id="width"  value="30" min = "1" max="100" size="4"> x <input type="number" id="height" value="30" min = "1" max="100" size="4">
+				</div>
+				<div id="controls_field" class="field">
+					<div id="ok" class="button" onclick="initGame();">Ok</div>
+				</div>
+				<div id="error_window"></div>
+			</div>
+		</div>
+		<div id="help">
+		
+		</div>
+	</div>
+</body>
+</html>
