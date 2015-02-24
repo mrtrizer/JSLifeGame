@@ -14,6 +14,8 @@
 	var prevX = -1;
 	var prevY = -1;
 	var helpKeyState = false;
+	var stat = [];
+	var windowSize = 3;
 
 	function cutValue(val, minVal, maxVal)
 	{
@@ -30,7 +32,7 @@
 		height = cutValue(document.getElementById("height").value,1,100);
 	}
 	
-	function buildMatrix()
+	function buildMatrix(width,height)
 	{
 		var matrix = new Array(width);
 		for (var i = 0; i < width; i++)
@@ -46,6 +48,7 @@
 	
 	function startGame()
 	{
+		stat = [];
 		gameState = "run";
 	}
 	
@@ -77,7 +80,7 @@
 	
 	function procGame()
 	{
-		var newMatrix = buildMatrix();
+		var newMatrix = buildMatrix(width,height);
 		for (var i = 0; i < width; i++)
 		{
 			for (var j = 0; j < height; j++)
@@ -95,6 +98,38 @@
 			}
 		}
 		matrix = newMatrix;
+		if (document.getElementById("stat_checkbox").checked)
+		{
+			analyze();
+			showStat();
+		}
+	}
+	
+	function clearStat()
+	{
+		stat = [];
+		showStat();
+	}
+	
+	function renderToCanvas(c,matrix,width,height)
+	{
+		
+		var ctx = c.getContext("2d");
+		var cWidth = c.width;
+		var cHeight = c.height;
+
+		ctx.clearRect(0,0,cWidth,cHeight);
+		for (var i = 0; i < width; i++)
+		{
+			for (var j = 0; j < height; j++)
+			{
+				if (matrix[i][j] == 0)
+					ctx.fillStyle = "#AAA";
+				else
+					ctx.fillStyle = "#666";
+				ctx.fillRect(i * 11, j * 11, 10, 10);
+			}
+		}
 	}
 	
 	function render()
@@ -113,23 +148,70 @@
 			}
 		}
 		var c = document.getElementById("matrix_canvas");
-		var ctx = c.getContext("2d");
-		var cWidth = c.width;
-		var cHeight = c.height;
-
-		ctx.clearRect(0,0,cWidth,cHeight);
-		for (var i = 0; i < width; i++)
+		renderToCanvas(c,matrix,width,height);
+	}
+	
+	function checksum(matrix,i,j,width,height)
+	{
+		var sumStr = "";
+		for (var it = 0; it < width; it++)
 		{
-			for (var j = 0; j < height; j++)
+			for (var jt = 0; jt < height; jt++)
 			{
-				if (matrix[i][j] == 0)
-					ctx.fillStyle = "#AAA";
-				else
-					ctx.fillStyle = "#666";
-				ctx.fillRect(i * 11, j * 11, 10, 10);
+				sumStr += getCellSafe(i + it, j + jt); 
 			}
 		}
+		return sumStr;
+	}
+	
+	function analyze()
+	{
 		
+		for (var i = 0; i < (width - windowSize + 1); i++)
+		{
+			for (var j = 0; j < (height - windowSize + 1); j++)
+			{
+				addStat(checksum(matrix, i, j, windowSize, windowSize), 1)
+			}
+		}
+	}
+	
+	function addStat(id,n)
+	{
+		if (id == "000000000")
+			return;
+		if (!stat[id])
+			stat[id] = 0;
+		stat[id] += n;
+	}
+	
+	function getTable(str)
+	{
+		var result = "<table class='small_table'>";
+		for (var j = 0; j <  windowSize; j++)
+		{
+			result += "<tr>";
+			for (var i = 0; i < windowSize; i++)
+			{
+				if (str.charAt(i * windowSize + j) == "1")
+					result += "<td class='on'></td>";
+				else
+					result += "<td class='off'></td>";
+			}
+			result += "</tr>";
+		}
+		result += "</table>";
+		return result;
+	}
+	
+	function showStat()
+	{
+		var element = document.getElementById("stat_field");
+		element.innerHTML = "";
+		for (var i in stat)
+		{
+			element.innerHTML += "<div class='stat_item' id='item" + i + "'> " + getTable(i) + "<div class='count'>" + stat[i] + "</div></div>\n";
+		}
 	}
 	
 	function mouseProc(e)
@@ -166,10 +248,11 @@
 		var c = document.getElementById("matrix_canvas");
 		c.width = width * 11;
 		c.height = height * 11;
-		matrix = buildMatrix();
+		matrix = buildMatrix(width,height);
 		document.getElementById("start_window_container").style.visibility = "hidden";
 		setInterval("render()",50);
 		showSpeed();
+		clearStat();
 	}
 	
 	function showSpeed()
@@ -186,7 +269,7 @@
 	
 	function addSpeed()
 	{
-		if (speed > 0)
+		if (speed > 1)
 			speed -= 1;
 		showSpeed();
 	}
@@ -199,7 +282,8 @@
 	function resetMatrix()
 	{
 		stopGame();
-		matrix = buildMatrix();
+		clearStat();
+		matrix = buildMatrix(width,height);
 	}
 	
 	function setPoint(x,y)
@@ -297,6 +381,9 @@
 				<div id="speed">--</div>
 				<div id="add_speed" class="button" onclick="addSpeed()" onmousemove="showHelp('add_speed','Increase speed.',event)" onmouseout="hideHelp()">+</div>
 			</div>
+			<div class="field" id="stat_field">
+				
+			</div>
 		</div>
 		
 		<div id="start_window_container">
@@ -305,6 +392,9 @@
 			<div id="start_window">
 				<div id="matrix_size_field" class="field">
 					Matrix size: <input type="number" id="width"  value="30" min = "1" max="100" size="4"> x <input type="number" id="height" value="30" min = "1" max="100" size="4">
+				</div>
+				<div id="stat_checkbox_field" class="field">
+					<input type="checkbox" id="stat_checkbox">Show statistic
 				</div>
 				<div id="controls_field" class="field">
 					<div id="ok" class="button" onclick="initGame();">Ok</div>

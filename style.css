@@ -112,6 +112,11 @@ body {
 	position:absolute;
 }
 
+#start_window #stat_checkbox_field {
+	left:15px;
+	top: 100px;
+}
+
 #control_panel #controls_field {
 	left:30px;
 	top: 30px;
@@ -125,6 +130,15 @@ body {
 #control_panel #speed_field {
 	left:30px;
 	top: 130px;
+}
+
+#control_panel #stat_field {
+	top:200;
+	left:20px;
+	height:380px;
+	width:200px;
+	border: 1px solid #999;
+	overflow-y: scroll;
 }
 
 #control_panel #speed_field #speed {
@@ -157,4 +171,40 @@ body {
 	width:150px;
 	background-color:#9F9;
 	visibility: hidden;
+}
+
+.stat_item {
+	background-color: #DDD;
+	width: 180px;
+	display: block;
+	height: auto;
+	overflow: auto;
+	margin-bottom:1px;
+}
+
+.stat_item .count {
+	line-height: 33px;
+	vertical-align:middle;
+	padding-left:50px;
+}
+
+.small_table {
+	background-color: #ABC;
+	width: 33px;
+	height: 33px;
+	float:left;
+	clear:left;
+	display:block;
+}
+
+.small_table .on {
+	background-color: #666;
+	width: 10px;
+	height: 10px;	
+}
+
+.small_table .off {
+	background-color: #AAA;
+	width: 10px;
+	height: 10px;
 }
